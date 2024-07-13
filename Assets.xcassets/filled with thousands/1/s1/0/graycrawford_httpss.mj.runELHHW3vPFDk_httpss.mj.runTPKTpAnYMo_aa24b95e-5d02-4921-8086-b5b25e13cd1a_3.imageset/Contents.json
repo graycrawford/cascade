@@ -1,0 +1,21 @@
+{
+  "images" : [
+    {
+      "filename" : "graycrawford_httpss.mj.runELHHW3vPFDk_httpss.mj.runTPKTpAnYMo_aa24b95e-5d02-4921-8086-b5b25e13cd1a_3.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
