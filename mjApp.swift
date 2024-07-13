@@ -10,9 +10,6 @@ import SwiftUI
 @main
 struct mjApp: App {
     var body: some Scene {
-      // tab bar at bottom for content view and complex scroll view:
-
-      
       
         WindowGroup {
           ComplexScrollView()

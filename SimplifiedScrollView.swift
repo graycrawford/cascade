@@ -85,8 +85,8 @@ struct SimplifiedScrollView: View {
           
           Spacer()
           Image(systemName: "lasso.badge.sparkles")
-            .blur(radius: 2)
-            .opacity(0.5)
+//            .blur(radius: 2)
+//            .opacity(0.5)
           Spacer()
           Image(systemName: "arrow.up.and.down.and.sparkles")
             //                  .blur(radius: 4)
