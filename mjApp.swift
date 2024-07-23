@@ -12,6 +12,7 @@ struct mjApp: App {
     var body: some Scene {
       
         WindowGroup {
+//          PromptAssembly()
           ComplexScrollView()
         }
     }
