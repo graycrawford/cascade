@@ -144,22 +144,22 @@ struct ComplexScrollView: View {
                   isGestureEnded = false
                   
                   if !isExpanded {
-                    // Determine the active quarter based on touch location only when not expanded
+                      // Determine the active quarter based on touch location only when not expanded
                     activeQuarter = Int(touchLocationX / (screenWidth / 4))
                     
-                    // Determine the anchor point based on touch location
+                      // Determine the anchor point based on touch location
                     if touchLocationX < screenWidth * 0.25 {
                       anchorPoint = UnitPoint(x: 0, y: 0)
                     } else if touchLocationX < screenWidth * 0.5 {
-                      anchorPoint = UnitPoint(x: 0.325, y: 0)
+                      anchorPoint = UnitPoint(x: 1/3, y: 0)
                     } else if touchLocationX < screenWidth * 0.75 {
-                      anchorPoint = UnitPoint(x: 0.675, y: 0)
+                      anchorPoint = UnitPoint(x: 2/3, y: 0)
                     } else {
                       anchorPoint = UnitPoint(x: 1, y: 0)
                     }
                     expandedAnchorPoint = anchorPoint
                   } else {
-                    // Use the expanded anchor point when already expanded
+                      // Use the expanded anchor point when already expanded
                     anchorPoint = expandedAnchorPoint ?? .center
                   }
                   
@@ -174,37 +174,37 @@ struct ComplexScrollView: View {
                   withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.9, blendDuration: 1.0)) {
                     if isExpanded {
                       if dragAmount > itemHeight / 4 {
-                        // Contract
+                          // Contract
                         scaleFactor = 1
                         verticalOffset = 0
                         isExpanded = false
                         expandedAnchorPoint = nil
                       } else {
-                        // Stay expanded
+                          // Stay expanded
                         scaleFactor = 4
                         verticalOffset = -itemHeight
                       }
                     } else {
                       if -dragAmount > itemHeight / 4 {
-                        // Expand
+                          // Expand
                         scaleFactor = 4
                         verticalOffset = -itemHeight
                         isExpanded = true
                       } else {
-                        // Stay contracted
+                          // Stay contracted
                         scaleFactor = 1
                         verticalOffset = 0
                       }
                     }
                   }
-                  // Set gesture ended flag
+                    // Set gesture ended flag
                   isGestureEnded = true
                   gestureStartScaleFactor = scaleFactor
                   gestureStartOffset = verticalOffset
                 }
             )
             
-            // icons
+              // icons
             HStack {
               HStack {
                 
@@ -236,7 +236,7 @@ struct ComplexScrollView: View {
         VStack {
           Spacer()
           VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
-            .frame(height: geom.safeAreaInsets.bottom * 2)
+            .frame(height: geom.safeAreaInsets.bottom * 2.4)
         }
         .ignoresSafeArea()
       }
@@ -274,7 +274,7 @@ struct ComplexScrollView: View {
     }
   }
   
-  // Helper function to calculate opacity for each subsquare
+    // Helper function to calculate opacity for each subsquare
   private func opacityForSubSquare(_ subIndex: Int) -> Double {
     if subIndex == activeQuarter {
       return 1.0
@@ -288,7 +288,7 @@ struct ComplexScrollView: View {
     }
   }
   
-  // Helper function to calculate blur for each subsquare
+    // Helper function to calculate blur for each subsquare
   private func blurForSubSquare(_ subIndex: Int) -> CGFloat {
     if subIndex == activeQuarter {
       return 0 // Active quarter always remains clear
@@ -298,7 +298,7 @@ struct ComplexScrollView: View {
       if isExpanded {
         return maxBlur // Fully blur inactive quarters when expanded
       } else {
-        // Smoothly transition blur based on scale factor
+          // Smoothly transition blur based on scale factor
         return progress * maxBlur
       }
     }
