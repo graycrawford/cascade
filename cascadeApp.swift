@@ -1,6 +1,6 @@
 //
-//  mjApp.swift
-//  mj
+//  cascadeApp.swift
+//  cascade
 //
 //  Created by Gray Crawford on 6/27/23.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct mjApp: App {
+struct cascadeApp: App {
     var body: some Scene {
       
         WindowGroup {
