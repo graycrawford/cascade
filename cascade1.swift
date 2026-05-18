@@ -9,6 +9,7 @@ struct cascade1: View {
  @State private var targetChild: Int = 0
  @State private var gestureMode: GestureMode? = nil
  @State private var gestureLevel: Int = 0
+ @State private var pendingPromotionChild: Int?
  
  enum GestureMode { case vertical, horizontal }
  
@@ -21,10 +22,11 @@ struct cascade1: View {
    let gap: CGFloat = 8
    let spacing: CGFloat = 4
    let subSquareSize = (itemWidth - 3 * spacing) / 4
-   let subsubSquareSize = (subSquareSize - 3 * spacing / 2) / 4
+   let subsubSquareSize = (subSquareSize - 2 * spacing) / 4
    let levelHeight = itemHeight + gap
    let parentCornerRadius: CGFloat = 15
    let primeLeftX = (screenWidth - itemWidth) / 2
+   let carouselStride = screenWidth
    let activeLayoutHeight = itemHeight + 2 * gap + subSquareSize + subsubSquareSize
    let bottomMargin = geometry.safeAreaInsets.bottom + 16
    let availableTop = geometry.safeAreaInsets.top + 8
@@ -35,12 +37,7 @@ struct cascade1: View {
    let baseScroll = CGFloat(activePath.count - 1) * levelHeight
    let promotionProgress = max(CGFloat(0), min(CGFloat(1), (liveScroll - baseScroll) / levelHeight))
    ZStack {
-    Image(cascadeImageName(for: activePath))
-     .resizable()
-     .scaleEffect(1.4)
-     .blur(radius: 80)
-     .saturation(3)
-     .opacity(0.2)
+    (colorScheme == .light ? Color.white : Color.black)
      .edgesIgnoringSafeArea(.all)
     
     ZStack(alignment: .topLeading) {
@@ -52,10 +49,10 @@ struct cascade1: View {
       let hDragOffset = isHTarget ? liveHorizontalDrag : 0
       let currentSibling = activePath[levelIdx]
       
-      ForEach(0..<4, id: \.self) { siblingIdx in
+      ForEach(visibleSiblingRange(around: currentSibling), id: \.self) { siblingIdx in
        let siblingDelta = siblingIdx - currentSibling
        let siblingPath = parentLevelPath + [siblingIdx]
-       let xOffset = CGFloat(siblingDelta) * screenWidth + hDragOffset
+       let xOffset = CGFloat(siblingDelta) * carouselStride + hDragOffset
        
        CascadeTile(
         path: siblingPath,
@@ -67,49 +64,44 @@ struct cascade1: View {
       }
       
       if isActive {
-       ForEach(0..<4, id: \.self) { activeSiblingIdx in
+       ForEach(visibleSiblingRange(around: currentSibling), id: \.self) { activeSiblingIdx in
         let siblingDelta = activeSiblingIdx - currentSibling
         let siblingPath = parentLevelPath + [activeSiblingIdx]
-        let siblingXOffset = CGFloat(siblingDelta) * screenWidth + hDragOffset
+        let siblingXOffset = CGFloat(siblingDelta) * carouselStride + hDragOffset
        let siblingProgress = activeSiblingIdx == currentSibling ? promotionProgress : 0
        let currentChildSize = subSquareSize + (itemWidth - subSquareSize) * siblingProgress
        let currentGrandchildSize = subsubSquareSize + (subSquareSize - subsubSquareSize) * siblingProgress
        let currentGrandchildSpacing = (spacing / 2) + ((spacing / 2) * siblingProgress)
        let childToGrandchildGap = spacing + ((gap - spacing) * siblingProgress)
-       let greatGrandchildSize = subsubSquareSize * siblingProgress
-       let greatGrandchildSpacing = (spacing / 2) * siblingProgress
+       let greatGrandchildSpacing = spacing / 2
        let greatGrandchildGap = spacing * siblingProgress
        let chosenIdx = CGFloat(targetChild)
        let chosenChildLevelX = chosenIdx * (subSquareSize + spacing) * (1 - siblingProgress)
        let rowOffsetX = chosenChildLevelX - chosenIdx * (currentChildSize + spacing)
         
-        ForEach(0..<4, id: \.self) { childIdx in
+       ForEach(0..<4, id: \.self) { childIdx in
          let isTarget = childIdx == targetChild && activeSiblingIdx == currentSibling
          let childPath = siblingPath + [childIdx]
          let childPosInRow = CGFloat(childIdx) * (currentChildSize + spacing)
          let childLevelX = childPosInRow + rowOffsetX
          let childScreenX = primeLeftX + siblingXOffset + childLevelX
          let childScreenY = yPos + itemHeight + gap
-         let fadeOpacity = activeSiblingIdx == currentSibling && !isTarget ? Double(max(0, 1 - 0.85 * promotionProgress)) : Double(1)
-         let fadeBlur = activeSiblingIdx == currentSibling && !isTarget ? promotionProgress * 6 : 0
+        let branchOpacity = activeSiblingIdx == currentSibling && !isTarget ? Double(max(0, 1 - 0.85 * promotionProgress)) : Double(1)
+        let branchBlur = activeSiblingIdx == currentSibling && !isTarget ? promotionProgress * 6 : 0
+        let branchHeight = currentChildSize + childToGrandchildGap + currentGrandchildSize + greatGrandchildGap + max(0, ((currentGrandchildSize - (2 * spacing)) / 4) * siblingProgress)
          
-         CascadeTile(
+        ZStack(alignment: .topLeading) {
+          CascadeTile(
           path: childPath,
           radii: childRadii(for: childIdx, progress: siblingProgress, parentCornerRadius: parentCornerRadius),
-          showsLabel: false
-         )
+           showsLabel: false
+          )
          .frame(width: currentChildSize, height: currentChildSize)
-         .opacity(fadeOpacity)
-         .blur(radius: fadeBlur)
-         .position(x: childScreenX + currentChildSize / 2, y: childScreenY + currentChildSize / 2)
-         .zIndex(isTarget ? 10 : 1)
-         
+          
          ForEach(0..<4, id: \.self) { gcIdx in
           let gcPath = childPath + [gcIdx]
           let gcXInChild = CGFloat(gcIdx) * (currentGrandchildSize + currentGrandchildSpacing)
-          let gcLevelX = childLevelX + gcXInChild
-          let gcScreenX = primeLeftX + siblingXOffset + gcLevelX
-          let gcScreenY = childScreenY + currentChildSize + childToGrandchildGap
+          let gcScreenY = currentChildSize + childToGrandchildGap
           
           CascadeTile(
            path: gcPath,
@@ -117,39 +109,48 @@ struct cascade1: View {
            showsLabel: false
           )
           .frame(width: currentGrandchildSize, height: currentGrandchildSize)
-          .opacity(fadeOpacity)
-          .blur(radius: fadeBlur)
-          .position(x: gcScreenX + currentGrandchildSize / 2, y: gcScreenY + currentGrandchildSize / 2)
-          .zIndex(isTarget ? 10 : 1)
+          .position(x: gcXInChild + currentGrandchildSize / 2, y: gcScreenY + currentGrandchildSize / 2)
           
-          ForEach(0..<4, id: \.self) { ggcIdx in
-           let ggcPath = gcPath + [ggcIdx]
-           let ggcXInGrandchild = CGFloat(ggcIdx) * (greatGrandchildSize + greatGrandchildSpacing)
-           let ggcScreenX = gcScreenX + ggcXInGrandchild
+          if isTarget {
+           let greatGrandchildWidth = max(0, (currentGrandchildSize - (2 * spacing)) / 4)
+           let greatGrandchildHeight = greatGrandchildWidth * siblingProgress
            let ggcScreenY = gcScreenY + currentGrandchildSize + greatGrandchildGap
            
-           CascadeTile(
-            path: ggcPath,
-            radii: greatGrandchildRadii(progress: siblingProgress),
-            showsLabel: false
-           )
-           .frame(width: greatGrandchildSize, height: greatGrandchildSize)
-           .opacity(Double(siblingProgress) * fadeOpacity)
-           .blur(radius: fadeBlur)
-           .position(x: ggcScreenX + greatGrandchildSize / 2, y: ggcScreenY + greatGrandchildSize / 2)
-           .zIndex(isTarget ? 10 : 1)
+           HStack(spacing: greatGrandchildSpacing) {
+            ForEach(0..<4, id: \.self) { ggcIdx in
+             let ggcPath = gcPath + [ggcIdx]
+             
+             CascadeTile(
+              path: ggcPath,
+              radii: greatGrandchildRadii(for: ggcIdx),
+              showsLabel: false
+             )
+             .frame(width: greatGrandchildWidth, height: greatGrandchildHeight)
+            }
+            }
+           .frame(width: currentGrandchildSize, height: greatGrandchildHeight, alignment: .topLeading)
+           .blur(radius: (1 - siblingProgress) * 4)
+           .opacity(Double(siblingProgress))
+           .position(x: gcXInChild + currentGrandchildSize / 2, y: ggcScreenY + greatGrandchildHeight / 2)
           }
          }
         }
+        .frame(
+         width: currentChildSize,
+         height: branchHeight,
+         alignment: .topLeading
+        )
+        .opacity(branchOpacity)
+        .blur(radius: branchBlur)
+        .position(x: childScreenX + currentChildSize / 2, y: childScreenY + branchHeight / 2)
+        .zIndex(isTarget ? 10 : 1)
        }
       }
      }
     }
     .frame(maxWidth: .infinity, alignment: .topLeading)
     .offset(y: topInset - liveScroll)
-    .clipped()
    }
-   .clipped()
    .contentShape(Rectangle())
    .gesture(
     DragGesture(minimumDistance: 4)
@@ -202,10 +203,15 @@ struct cascade1: View {
         let newBase = base + levelHeight
         let chosenChildIdx = targetChild
         
+       pendingPromotionChild = chosenChildIdx
+       
         withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.85, blendDuration: 1.0)) {
          scrollY = newBase
         } completion: {
+        if pendingPromotionChild == chosenChildIdx {
          activePath.append(chosenChildIdx)
+         pendingPromotionChild = nil
+        }
         }
        } else {
         let snappedLevel = (predictedTotalScroll / levelHeight).rounded()
@@ -220,7 +226,7 @@ struct cascade1: View {
        let currentSibling = activePath[gestureLevel]
        let momentum = predictedDx - dx
        let totalDelta = dx + momentum
-       let projectedDelta = -(totalDelta / screenWidth).rounded()
+       let projectedDelta = -(totalDelta / carouselStride).rounded()
        let intDelta = Int(projectedDelta)
        let newSibling = max(0, min(3, currentSibling + intDelta))
        let actualDelta = newSibling - currentSibling
@@ -230,7 +236,7 @@ struct cascade1: View {
          liveHorizontalDrag = 0
         }
        } else {
-        let adjustedDrag = liveHorizontalDrag + CGFloat(actualDelta) * screenWidth
+        let adjustedDrag = liveHorizontalDrag + CGFloat(actualDelta) * carouselStride
         
         var newPath = Array(activePath.prefix(gestureLevel))
         newPath.append(newSibling)
@@ -248,6 +254,21 @@ struct cascade1: View {
       }
       
       gestureMode = nil
+     }
+   )
+   .simultaneousGesture(
+    SpatialTapGesture()
+     .onEnded { value in
+      handleTap(
+       at: value.location,
+       topInset: topInset,
+       itemHeight: itemHeight,
+       gap: gap,
+       subSquareSize: subSquareSize,
+       spacing: spacing,
+       primeLeftX: primeLeftX,
+       levelHeight: levelHeight
+      )
      }
    )
   }
@@ -295,6 +316,57 @@ struct cascade1: View {
     .padding([.leading, .trailing], 24)
     .padding(.top, 0)
     .padding(.bottom, 0)
+   }
+  }
+ }
+ }
+ 
+ private func handleTap(
+  at location: CGPoint,
+  topInset: CGFloat,
+  itemHeight: CGFloat,
+  gap: CGFloat,
+  subSquareSize: CGFloat,
+  spacing: CGFloat,
+  primeLeftX: CGFloat,
+  levelHeight: CGFloat
+ ) {
+  let xWithinPrime = location.x - primeLeftX
+  let idx = Int(xWithinPrime / (subSquareSize + spacing))
+  
+  guard idx >= 0 && idx < 4 else { return }
+  
+  let incomingChildRowTop = topInset + itemHeight + gap
+  if let pending = pendingPromotionChild,
+     location.y >= incomingChildRowTop,
+     location.y <= incomingChildRowTop + subSquareSize {
+   activePath.append(pending)
+   pendingPromotionChild = nil
+   startPromotion(child: idx, levelHeight: levelHeight)
+   return
+  }
+  
+  let activeY = CGFloat(activePath.count - 1) * levelHeight
+  let childRowTop = topInset - scrollY + activeY + itemHeight + gap
+  
+  guard location.y >= childRowTop else { return }
+  guard location.y <= childRowTop + subSquareSize else { return }
+  
+  startPromotion(child: idx, levelHeight: levelHeight)
+ }
+ 
+ private func startPromotion(child: Int, levelHeight: CGFloat) {
+  let base = CGFloat(activePath.count - 1) * levelHeight
+  let newBase = base + levelHeight
+  
+  withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.85, blendDuration: 1.0)) {
+   targetChild = child
+   pendingPromotionChild = child
+   scrollY = newBase
+  } completion: {
+   if pendingPromotionChild == child {
+    activePath.append(child)
+    pendingPromotionChild = nil
    }
   }
  }
@@ -378,12 +450,11 @@ private func childRadii(for index: Int, progress: CGFloat, parentCornerRadius: C
 }
 
 private func grandchildRadii(for index: Int, progress: CGFloat) -> CascadeCornerRadii {
- let resting = CascadeCornerRadii(topLeading: index == 0 ? 3 : 1, bottomLeading: index == 0 ? 3 : 1, bottomTrailing: index == 3 ? 3 : 1, topTrailing: index == 3 ? 3 : 1)
- return lerpRadii(from: resting, to: restingChildRadii(for: index), progress: progress)
+ lerpRadii(from: restingGrandchildRadii(for: index), to: restingChildRadii(for: index), progress: progress)
 }
 
-private func greatGrandchildRadii(progress: CGFloat) -> CascadeCornerRadii {
- lerpRadii(from: CascadeCornerRadii(0.2), to: CascadeCornerRadii(2), progress: progress)
+private func greatGrandchildRadii(for index: Int) -> CascadeCornerRadii {
+ restingGrandchildRadii(for: index)
 }
 
 private func restingChildRadii(for index: Int) -> CascadeCornerRadii {
@@ -398,6 +469,19 @@ private func restingChildRadii(for index: Int) -> CascadeCornerRadii {
  )
 }
 
+private func restingGrandchildRadii(for index: Int) -> CascadeCornerRadii {
+ let parentCornerRadius: CGFloat = 14
+ let outerRadius = parentCornerRadius / 2
+ let innerRadius = parentCornerRadius / 4
+ 
+ return CascadeCornerRadii(
+  topLeading: index == 0 ? outerRadius : innerRadius,
+  bottomLeading: index == 0 ? outerRadius : innerRadius,
+  bottomTrailing: index == 3 ? outerRadius : innerRadius,
+  topTrailing: index == 3 ? outerRadius : innerRadius
+ )
+}
+
 private func lerpRadii(from start: CascadeCornerRadii, to end: CascadeCornerRadii, progress: CGFloat) -> CascadeCornerRadii {
  CascadeCornerRadii(
   topLeading: lerp(start.topLeading, end.topLeading, progress),
@@ -409,6 +493,10 @@ private func lerpRadii(from start: CascadeCornerRadii, to end: CascadeCornerRadi
 
 private func lerp(_ start: CGFloat, _ end: CGFloat, _ progress: CGFloat) -> CGFloat {
  start + (end - start) * progress
+}
+
+private func visibleSiblingRange(around currentSibling: Int) -> [Int] {
+ Array(max(0, currentSibling - 1)...min(3, currentSibling + 1))
 }
 
 private func cascadeImageName(for path: [Int]) -> String {
