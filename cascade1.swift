@@ -111,28 +111,26 @@ struct cascade1: View {
           .frame(width: currentGrandchildSize, height: currentGrandchildSize)
           .position(x: gcXInChild + currentGrandchildSize / 2, y: gcScreenY + currentGrandchildSize / 2)
           
-          if isTarget {
-           let greatGrandchildWidth = max(0, (currentGrandchildSize - (2 * spacing)) / 4)
-           let greatGrandchildHeight = greatGrandchildWidth * siblingProgress
-           let ggcScreenY = gcScreenY + currentGrandchildSize + greatGrandchildGap
-           
-           HStack(spacing: greatGrandchildSpacing) {
-            ForEach(0..<4, id: \.self) { ggcIdx in
-             let ggcPath = gcPath + [ggcIdx]
-             
-             CascadeTile(
-              path: ggcPath,
-              radii: greatGrandchildRadii(for: ggcIdx),
-              showsLabel: false
-             )
-             .frame(width: greatGrandchildWidth, height: greatGrandchildHeight)
+          let greatGrandchildWidth = max(0, (currentGrandchildSize - (2 * spacing)) / 4)
+          let greatGrandchildHeight = greatGrandchildWidth * siblingProgress
+          let ggcScreenY = gcScreenY + currentGrandchildSize + greatGrandchildGap
+          
+          HStack(spacing: greatGrandchildSpacing) {
+           ForEach(0..<4, id: \.self) { ggcIdx in
+            let ggcPath = gcPath + [ggcIdx]
+            
+            CascadeTile(
+             path: ggcPath,
+             radii: greatGrandchildRadii(for: ggcIdx),
+             showsLabel: false
+            )
+            .frame(width: greatGrandchildWidth, height: greatGrandchildHeight)
             }
-            }
-           .frame(width: currentGrandchildSize, height: greatGrandchildHeight, alignment: .topLeading)
-           .blur(radius: (1 - siblingProgress) * 4)
-           .opacity(Double(siblingProgress))
-           .position(x: gcXInChild + currentGrandchildSize / 2, y: ggcScreenY + greatGrandchildHeight / 2)
           }
+          .frame(width: currentGrandchildSize, height: greatGrandchildHeight, alignment: .topLeading)
+          .blur(radius: (1 - siblingProgress) * 4)
+          .opacity(isTarget ? Double(siblingProgress) : 0)
+          .position(x: gcXInChild + currentGrandchildSize / 2, y: ggcScreenY + greatGrandchildHeight / 2)
          }
         }
         .frame(
